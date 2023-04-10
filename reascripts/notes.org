@@ -1,0 +1,26 @@
+#+title: reascript functions
+
+* resources
+
+** interesting API functions
+
+*** InsetMedia
+
+integer reaper.InsertMedia(string file, integer mode)
+
+mode:
+0=add to current track,
+1=add new track,
+3=add to selected items as takes,
+&4=stretch/loop to fit time sel,
+&8=try to match tempo 1x,
+&16=try to match tempo 0.5x,
+&32=try to match tempo 2x,
+&64=don't preserve pitch when matching tempo,
+&128=no loop/section if startpct/endpct set,
+&256=force loop regardless of global preference for looping imported items,
+&512=use high word as absolute track index if mode&3==0,
+&1024=insert into reasamplomatic on a new track,
+&2048=insert into open reasamplomatic instance,
+&4096=move to source preferred position (BWF start offset),
+&8192=reverse
