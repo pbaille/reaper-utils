@@ -1,5 +1,5 @@
 (local {&as utils
-        :tbl table
+        :table tbl
         : hof} (require :utils))
 
 (local pp (require :pprint))
@@ -104,12 +104,30 @@
                   channel pitch velocity
                   true))
 
-(fn note.upd [note t]
-  (tbl.upd note t)
-  (note.sync note))
+(fn note.insert [{: channel
+                  : end-position
+                  : muted
+                  : pitch
+                  : selected
+                  : start-position
+                  : velocity
+                  : take}]
+  (r.MIDI_InsertNote take
+                     selected muted
+                     start-position end-position
+                     channel pitch velocity
+                     true))
+
+(fn note.upd [n t]
+  (tbl.upd n t)
+  (note.sync n))
 
 (fn note.at-cursor? [n]
   (= n.position (cursor-position n.take)))
+
+(fn note.shift-position [n offset]
+  (tbl.upd n {:start-position (hof.adder offset)
+              :end-position (hof.adder offset)}))
 
 ;; ------------------------------------------------------------
 

@@ -53,13 +53,15 @@
 (fn table.upd-at [t k u]
   (case (type u)
     :function (tset t k (u (. t k)))
-    _ (tset t k u)))
+    _ (tset t k u))
+  t)
 
 (fn table.upd [t u]
   (case (type u)
     :table (each [k f (pairs u)]
              (table.upd-at t k f))
-    :function (u t)))
+    :function (u t))
+  t)
 
 
 ;; ------------------------------------------------------------
@@ -98,6 +100,10 @@
 ;; ------------------------------------------------------------
 :tries
 
+(fn reload [p]
+  (tset package.loaded p nil)
+  (require p))
+
 (comment :tries
          (relative-slurp "xp/first.fnl")
          (relative-spit "test.txt" "hello")
@@ -108,6 +114,8 @@
 
          (local m (table-matcher {:a 1
                                   :b (fn [x] (= :boolean (type x)))}))
+
+         (table.upd {:a 1} {:a (hof.adder 3)})
 
          (m {:a 1 :b true :x 4})
          (m {:a 1 :b 5}))
@@ -122,5 +130,5 @@
  : file
  : table
  : hof
- : reascript}
-
+ : reascript
+ : reload}

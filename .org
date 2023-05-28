@@ -1,0 +1,62 @@
+* Lua
+
+Main repo for lua code
+
+
+** Setup
+
+I use =luarocks= as package manager
+[[~/.luarocks/][lua-user-dir]]
+alternatively I use =luaver=
+
+** fennel
+
+I will mainly use the fennel langage to interop with Lua
+
+** Reaper
+
+[[~/Library/ApplicationSupport/REAPER/Scripts/][scripts dir]]
+
+The main motivation for using Lua is to interoperate with the reaper DAW
+
+*** [[file:ruteal.fnl::(local {&as utils][ruteal.fnl]]
+main utils file for reaper interp
+
+*** [[/Users/pierrebaille/Code/Lua/socket-repl.fnl][socket-repl.fnl]]
+ this file is compiled in lua and added to reaper
+
+ - From reaper action menu (?) search and run socket-repl.lua
+ - from a fnl source file buffer =(spc m R)= will enable reaper-mode
+   expression can be evaluated using =pb/send-fnl-s-expression-to-reaper-socket-repl=
+   this should popup a console window in reaper.
+
+*** [[/Users/pierrebaille/Code/Lua/socket.lua][socket.lua]]
+this file load the reaper modified socket library (duplicated from REAPER/Sripts dir)
+
+** Clojure interop
+
+Connect to a running repl with
+[[file:xp/nrepl-client.fnl::(fn receive \[conn\]][nrepl-client.fnl]]
+
+
+* Things to do
+** DONE insert a note
+using the map representation of rutils
+insert a note at point from repl
+** DONE insert a noon score
+call noon using nrepl
+insert the score at cursor position in reaper
+- get score0 and turn it into ruteals note format
+  see [[~/Code/Lua/xp/nrepl-client.fnl]] for clj interop
+- noon should expose a way to get data suitable for midi insertion
+  see the code following previously mentioned clj interop
+** DONE create a convenient interface to send score to reaper
+- tried to use fennel repl as base but encountered some inconveniences
+  inserting a clj generated score into fennel code template is hard
+- try the same from clojure
+  send to reaper socket directly from clojure
+  see [[file:~/Code/WIP/noon/src/noon/utils/reaper.clj::comment (send-fennel (+ 4 5)][noon/utils/reaper.clj]]
+** TODO reload the reaper socket repl script remotely
+- I will need to make addition and changes to =ruteal.fnl= along the way
+  there should be an easy way to compile and reload, making those changes
+  immediately available in reaper-repl
