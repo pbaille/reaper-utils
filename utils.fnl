@@ -63,6 +63,11 @@
     :function (u t))
   t)
 
+(fn table.merge [a b]
+  (each [k v (pairs b)]
+    (tset a k v))
+  a)
+
 
 ;; ------------------------------------------------------------
 (local hof {})
@@ -116,6 +121,11 @@
                                   :b (fn [x] (= :boolean (type x)))}))
 
          (table.upd {:a 1} {:a (hof.adder 3)})
+         (table.upd {:a 1 :b 2}
+                    {:b 67})
+
+         (table.merge {:a 1 :b 2}
+                      {:b 67 :c 90})
 
          (m {:a 1 :b true :x 4})
          (m {:a 1 :b 5}))

@@ -78,3 +78,5 @@ lua could keep a table of MIDINote -> hash
 so when we receive a collection of hash represented selected notes
 
 if those notes have been edited they will be reset to their original state
+
+could we bind shortcuts to score updates ? it would make sense for simple update like pitch steps, velocity etc...

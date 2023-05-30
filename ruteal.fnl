@@ -63,7 +63,7 @@
   (let [cnt (event-count take)]
     (if (> cnt 0)
         (faccumulate [ret [] i 0 (- cnt 1)]
-          (table.insert ret (get-note take i)))
+          (table.insert ret (take.get-note take i)))
         [])))
 
 (fn take.select-notes [t matcher]
@@ -89,6 +89,18 @@
 ;; ------------------------------------------------------------
 (local note {})
 
+(fn note.default []
+  {:channel 1
+   :pitch 60
+   :velocity 80
+   :start-position 0
+   :end-position 960
+   :muted false
+   :selected true})
+
+(fn note.mk [n]
+  (tbl.merge (note.default) n))
+
 (fn note.sync [{: channel
                 : end-position
                 : muted
@@ -104,19 +116,20 @@
                   channel pitch velocity
                   true))
 
-(fn note.insert [{: channel
-                  : end-position
-                  : muted
-                  : pitch
-                  : selected
-                  : start-position
-                  : velocity
-                  : take}]
-  (r.MIDI_InsertNote take
-                     selected muted
-                     start-position end-position
-                     channel pitch velocity
-                     true))
+(fn note.insert [n]
+  (let [{: channel
+         : end-position
+         : muted
+         : pitch
+         : selected
+         : start-position
+         : velocity
+         : take}  (note.mk n)]
+    (r.MIDI_InsertNote take
+                       selected muted
+                       start-position end-position
+                       channel pitch velocity
+                       true)))
 
 (fn note.upd [n t]
   (tbl.upd n t)
@@ -128,6 +141,22 @@
 (fn note.shift-position [n offset]
   (tbl.upd n {:start-position (hof.adder offset)
               :end-position (hof.adder offset)}))
+
+(fn take.insert-note [t n]
+  (let [{: channel
+         : end-position
+         : muted
+         : pitch
+         : selected
+         : start-position
+         : velocity} (note.mk n)
+        idx (take.event-count t)]
+    (r.MIDI_InsertNote t
+                       selected muted
+                       start-position end-position
+                       channel pitch velocity
+                       true)
+    (take.get-note t idx)))
 
 ;; ------------------------------------------------------------
 
