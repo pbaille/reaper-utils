@@ -6,6 +6,8 @@
 
 (local r reaper)
 
+(local TICKS_PER_QUARTER_NOTE 960)
+
 ;; ------------------------------------------------------------
 (local misc {})
 
@@ -30,13 +32,16 @@
 
 ;; ------------------------------------------------------------
 (local take {})
-
+(local note {})
 
 (fn take.get-active []
   (r.MIDIEditor_GetTake (r.MIDIEditor_GetActive)))
 
-(fn take.event-count [take]
+(fn take.note-count [take]
   (let [(_ notecnt _ _) (r.MIDI_CountEvts take)] notecnt))
+
+(fn take.cc-count [take]
+  (let [(_ _ cc-cnt _) (r.MIDI_CountEvts take)] cc-cnt))
 
 (fn take.get-note [take idx]
   (let [(_ selected muted
@@ -59,11 +64,12 @@
   (r.MarkTrackItemsDirty (r.GetMediaItemTake_Track take)
                          (r.GetMediaItemTake_Item take)))
 
-(fn take.notes [take]
-  (let [cnt (event-count take)]
+(fn take.notes [t]
+  (let [cnt (take.note-count t)]
     (if (> cnt 0)
         (faccumulate [ret [] i 0 (- cnt 1)]
-          (table.insert ret (take.get-note take i)))
+          (do (table.insert ret (take.get-note t i))
+              ret))
         [])))
 
 (fn take.select-notes [t matcher]
@@ -86,9 +92,23 @@
   (let [cp (cursor-position take)]
     (take.upd-selected-notes #(= $.start-position cp) f)))
 
-;; ------------------------------------------------------------
-(local note {})
+(fn take.insert-note [t n]
+  (let [{: channel
+         : end-position
+         : muted
+         : pitch
+         : selected
+         : start-position
+         : velocity} (note.mk n)
+        idx (take.note-count t)]
+    (r.MIDI_InsertNote t
+                       selected muted
+                       start-position end-position
+                       channel pitch velocity
+                       true)
+    (take.get-note t idx)))
 
+;; ------------------------------------------------------------
 (fn note.default []
   {:channel 1
    :pitch 60
@@ -98,8 +118,20 @@
    :muted false
    :selected true})
 
+(fn note.to-absolute-position [n]
+  (let [{: position : duration} n
+        start-pos (* TICKS_PER_QUARTER_NOTE position)
+        end-pos (+ start-pos (* TICKS_PER_QUARTER_NOTE duration))]
+    (tset n :position nil)
+    (tset n :duration nil)
+    (tset n :start-position start-pos)
+    (tset n :end-position end-pos)
+    n))
+
 (fn note.mk [n]
-  (tbl.merge (note.default) n))
+  (if (and n.position n.duration)
+      (note.mk (note.to-absolute-position n))
+      (tbl.merge (note.default) n)))
 
 (fn note.sync [{: channel
                 : end-position
@@ -141,22 +173,6 @@
 (fn note.shift-position [n offset]
   (tbl.upd n {:start-position (hof.adder offset)
               :end-position (hof.adder offset)}))
-
-(fn take.insert-note [t n]
-  (let [{: channel
-         : end-position
-         : muted
-         : pitch
-         : selected
-         : start-position
-         : velocity} (note.mk n)
-        idx (take.event-count t)]
-    (r.MIDI_InsertNote t
-                       selected muted
-                       start-position end-position
-                       channel pitch velocity
-                       true)
-    (take.get-note t idx)))
 
 ;; ------------------------------------------------------------
 
