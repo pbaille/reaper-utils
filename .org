@@ -64,19 +64,15 @@ insert the score at cursor position in reaper
   this was achieved by adding a =reload= function to =utils.fnl=
   used in place of =require= it does the same thing but do not use cache.
   see [[file:~/Code/WIP/noon/src/noon/utils/reaper.clj::(let \[score-data (noon.score/score->reaper-notes (eval `(noon.score/mk ~@xs)))\]][noon/utils/reaper.clj]]
-** TODO reaper -> noon mapping
+** DONE get back some data from reaper
+reaper now send evaluation result to localhost port 9997
+noon.utils.reaper defines the =<<= macro that send the given forms and return the received result !
+** DONE get selection
 - it should be possible to select notes in reaper and get a noon score back
   - get the time selection if present
   - get the selected note in this selection
   - if no time selection use extreme notes as time boundaries
   - if no note selection select every notes in time selection
   - if neither of those, select the whole reaper take
-
-we should be able to track back to orignal event
-we could do so by computing a hash for each event and passing to reaper included in the intermediatory representation
-lua could keep a table of MIDINote -> hash
-so when we receive a collection of hash represented selected notes
-
-if those notes have been edited they will be reset to their original state
 
 could we bind shortcuts to score updates ? it would make sense for simple update like pitch steps, velocity etc...
