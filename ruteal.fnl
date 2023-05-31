@@ -37,6 +37,12 @@
 (fn take.get-active []
   (r.MIDIEditor_GetTake (r.MIDIEditor_GetActive)))
 
+(fn take.time-selection [t]
+  (let [(start end) (reaper.GetSet_LoopTimeRange false false 0 0 false)]
+    (if (not (= start end))
+        {:start (reaper.MIDI_GetPPQPosFromProjTime t start)
+         :end (reaper.MIDI_GetPPQPosFromProjTime t end)})))
+
 (fn take.note-count [take]
   (let [(_ notecnt _ _) (r.MIDI_CountEvts take)] notecnt))
 
@@ -71,6 +77,21 @@
           (do (table.insert ret (take.get-note t i))
               ret))
         [])))
+
+(fn seq-select [t f]
+  (let [ret []]
+    (each [_ n (ipairs t)]
+      (if (f n) (table.insert ret n)))
+    ret))
+
+(fn take.note-selection [t]
+  (let [notes (collect [i n (ipairs (take.notes t))] i (do (tset n :take nil) n))
+        selected-notes (seq-select notes (fn [n] n.selected))
+        candidates (if (= 0 (length selected-notes)) notes selected-notes)
+        time-selection (take.time-selection t)]
+    (case time-selection
+      {:start start :end end} (seq-select candidates (fn [n] (<= start n.start-position n.end-position end)))
+      _ candidates)))
 
 (fn take.select-notes [t matcher]
   (accumulate [ret [] i n (ipairs (take.notes t))]
@@ -107,6 +128,12 @@
                        channel pitch velocity
                        true)
     (take.get-note t idx)))
+
+(fn take.insert-notes [t xs]
+  (let [ret []]
+    (each [_ n (ipairs xs)]
+      (table.insert ret (take.insert-note t n)))
+    ret))
 
 ;; ------------------------------------------------------------
 (fn note.default []
