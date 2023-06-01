@@ -76,3 +76,13 @@ noon.utils.reaper defines the =<<= macro that send the given forms and return th
   - if neither of those, select the whole reaper take
 
 could we bind shortcuts to score updates ? it would make sense for simple update like pitch steps, velocity etc...
+** DONE init score
+the sync between the noon score atom and the active reaper take has to be maintained
+and initialized with =noon.score/score0=
+** DONE upd selection
+when running an update on a selection:
+- the selection has to be replaced by the resulting score in reaper
+- the score atom has to be updated
+
+** TODO handle JSON size limit
+when selection is not small I get end of file errors in clojure...

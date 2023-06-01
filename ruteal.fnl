@@ -78,6 +78,15 @@
               ret))
         [])))
 
+(fn take.delete-note [t idx]
+  (r.MIDI_DeleteNote t idx))
+
+(fn take.clear [t]
+  (let [cnt (take.note-count t)]
+    (if (> cnt 0)
+        (for [i (- cnt 1) 0 -1]
+          (take.delete-note t i)))))
+
 (fn seq-select [t f]
   (let [ret []]
     (each [_ n (ipairs t)]
