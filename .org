@@ -83,6 +83,44 @@ and initialized with =noon.score/score0=
 when running an update on a selection:
 - the selection has to be replaced by the resulting score in reaper
 - the score atom has to be updated
-
-** TODO handle JSON size limit
+** DONE handle JSON size limit
 when selection is not small I get end of file errors in clojure...
+it was done by brutally increase the size of [[file:~/Code/WIP/noon/src/noon/utils/socket.clj::packet (DatagramPacket. (byte-array PACKET_SIZE) PACKET_SIZE)\]][the datagram packet]]
+** DONE map score updates
+it should be handy to not leave emacs
+use emacs keybindings instead of reaper ones
+
+how to execute clojure code on a given keystroke ?
+- write an elisp function that send some expr to current repl
+- make a map of available reaper actions
+- setup an hydra for those
+
+send the current ecpression as a score update !
+#+begin_src emacs-lisp :tangle yes
+(defun pb/reaper-update-selection! ()
+  (interactive)
+  (cider-interactive-eval (concat "(upd-selection! " (pb/current-s-expression-as-string) ")")
+                          nil nil
+                          (cider--nrepl-pr-request-map)))
+
+(map! "M-C-z" #'pb/reaper-update-selection!)
+#+end_src
+** DONE direct actions
+sending everything via the socket repl is not optimal.
+it is slow.
+non noon-related actions should be triggered by action-id via Osc
+We will need to compile those actions into lua and manually assign actions id
+***  cursor and time-selection
+lets start small with cursor movement and time-selection adjusting
+I would like to do the most from clojure
+put all necessary info into a clojure map and call a function that emits all the lua code
+[[file:~/Code/WIP/noon/src/noon/utils/reaper.clj::(reg-actions!][action regitration]]
+** DONE FP lua helpers
+It should be nice to have map filter reduce
+see =keep= and =fold= in utils.fnl
+** STRT note selection oriented actions
+- should be able to navigate notes keeping focus (cursor and pitch-cursor)
+- extend selection to the next or previous note
+- cycling between notes at cursor
+** TODO refactor ruteal using keep and fold
+** TODO structure reaper actions like a tree and compile and hydra for it
