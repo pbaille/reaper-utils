@@ -68,6 +68,50 @@
     (tset a k v))
   a)
 
+(fn table.put [t k v]
+  (tset t k v)
+  t)
+
+(fn table.rem [t k]
+  (tset t k)
+  t)
+
+
+;; ------------------------------------------------------------
+;; bread and butter
+
+(fn fold [x f xs]
+  (accumulate [x x _ e (ipairs xs)] (f x e)))
+
+(local seq {})
+
+(fn seq.filter [s f]
+  (keep s (fn [x] (if (f x) x))))
+
+(fn seq.remove [s f]
+  (keep s (fn [x] (if (not (f x)) x))))
+
+(fn seq.keep [s f]
+  (icollect [_ x (ipairs s)] (f x)))
+
+(fn seq.sort-by [s f]
+  (table.sort s f)
+  s)
+
+(fn seq.append [s x]
+  (table.insert s x)
+  s)
+
+(fn seq.concat [s xs]
+  (each [_ x (ipairs xs)]
+    (seq.append s x))
+  s)
+
+(comment :seq-tries
+         (let [s [1 2 3 -4 8]]
+           (seq.keep s (fn [x] (if (> x 0) (+ 1 x)))))
+         (let [s [1 2 3 -4 8]]
+           (fold 0 (fn [ret x] (if (> x 0) (+ ret x) ret)) s)))
 
 ;; ------------------------------------------------------------
 (local hof {})
@@ -81,8 +125,9 @@
     :table (fn [this] (accumulate [this this _ k (ipairs at)]
                         (?. this k)))))
 
-((hof.getter [:a :b]) {:x {:b 3}})
-((hof.getter [:a :b]) {:a {:b 3}})
+(comment
+ ((hof.getter [:a :b]) {:x {:b 3}})
+ ((hof.getter [:a :b]) {:a {:b 3}}))
 
 (fn hof.k [x] (fn [_] x))
 (fn hof.inc [x] (+ 1 x))
@@ -141,4 +186,6 @@
  : table
  : hof
  : reascript
- : reload}
+ : reload
+ : fold
+ : seq}
