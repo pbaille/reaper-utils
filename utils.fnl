@@ -33,9 +33,9 @@
 
 
 ;; ------------------------------------------------------------
-(local table {})
+(local tbl {})
 
-(fn table.matcher [m]
+(fn tbl.matcher [m]
   (case (type m)
     :function m
     :table (fn [t]
@@ -47,33 +47,33 @@
                            :function (vm vt)
                            _ (= vm vt))))))))
 
-(fn table.match [t m]
-  ((table.matcher m) t))
+(fn tbl.match [t m]
+  ((tbl.matcher m) t))
 
-(fn table.upd-at [t k u]
+(fn tbl.upd-at [t k u]
   (case (type u)
     :function (tset t k (u (. t k)))
     _ (tset t k u))
   t)
 
-(fn table.upd [t u]
+(fn tbl.upd [t u]
   (case (type u)
     :table (each [k f (pairs u)]
-             (table.upd-at t k f))
+             (tbl.upd-at t k f))
     :function (u t))
   t)
 
-(fn table.merge [a b]
+(fn tbl.merge [a b]
   (each [k v (pairs b)]
     (tset a k v))
   a)
 
-(fn table.put [t k v]
+(fn tbl.put [t k v]
   (tset t k v)
   t)
 
-(fn table.rem [t k]
-  (tset t k)
+(fn tbl.rem [t k]
+  (tset t k nil)
   t)
 
 
@@ -86,16 +86,27 @@
 (local seq {})
 
 (fn seq.filter [s f]
-  (keep s (fn [x] (if (f x) x))))
+  (seq.keep s (fn [x] (if (f x) x))))
+
+(fn seq.find [s f]
+  (seq.first (seq.filter s f)))
 
 (fn seq.remove [s f]
-  (keep s (fn [x] (if (not (f x)) x))))
+  (seq.keep s (fn [x] (if (not (f x)) x))))
 
 (fn seq.keep [s f]
   (icollect [_ x (ipairs s)] (f x)))
 
-(fn seq.sort-by [s f]
+(fn seq.sort-with [s f]
   (table.sort s f)
+  s)
+
+(fn seq.sort-by [s key-fn]
+  (seq.sort-with s (fn [a b] (< (key-fn a) (key-fn b))))
+  s)
+
+(fn seq.reverse-sort-by [s key-fn]
+  (seq.sort-with s (fn [a b] (> (key-fn a) (key-fn b))))
   s)
 
 (fn seq.append [s x]
@@ -107,11 +118,30 @@
     (seq.append s x))
   s)
 
-(comment :seq-tries
-         (let [s [1 2 3 -4 8]]
-           (seq.keep s (fn [x] (if (> x 0) (+ 1 x)))))
-         (let [s [1 2 3 -4 8]]
-           (fold 0 (fn [ret x] (if (> x 0) (+ ret x) ret)) s)))
+(fn seq.first [s]
+  (. s 1))
+
+(fn seq.last [s]
+  (. s (length s)))
+
+(fn seq.index-of [s v]
+  (var idx nil)
+  (each [i x (ipairs s) &until idx]
+    (if (= x v)
+        (set idx i)))
+  idx)
+
+[:seq-tries
+ (let [s [1 2 3 -4 8]]
+   (seq.keep s (fn [x] (if (> x 0) (+ 1 x)))))
+ (let [s [1 2 3 -4 8]]
+   (fold 0 (fn [ret x] (if (> x 0) (+ ret x) ret)) s))
+ (seq.first [1 2 3 4])
+ (seq.last [1 2 3 4])
+ (seq.append [1 2 3] 4)
+ (seq.concat [1 2 3] [4 5 6])
+ (seq.index-of [1 3 2 5 4 6 2] 2)
+ (seq.sort-by [1 2 3 2 4 3] (fn [a] a))]
 
 ;; ------------------------------------------------------------
 (local hof {})
@@ -165,12 +195,12 @@
          (local m (table-matcher {:a 1
                                   :b (fn [x] (= :boolean (type x)))}))
 
-         (table.upd {:a 1} {:a (hof.adder 3)})
-         (table.upd {:a 1 :b 2}
-                    {:b 67})
+         (tbl.upd {:a 1} {:a (hof.adder 3)})
+         (tbl.upd {:a 1 :b 2}
+                  {:b 67})
 
-         (table.merge {:a 1 :b 2}
-                      {:b 67 :c 90})
+         (tbl.merge {:a 1 :b 2}
+                    {:b 67 :c 90})
 
          (m {:a 1 :b true :x 4})
          (m {:a 1 :b 5}))
@@ -183,7 +213,7 @@
 
 {: path
  : file
- : table
+ : tbl
  : hof
  : reascript
  : reload
