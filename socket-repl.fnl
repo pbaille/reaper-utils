@@ -16,7 +16,7 @@
 (assert (udp-out:setpeername "127.0.0.1" 9997))
 
 (fn log-as-error [err]
-  (log (.. "error:\n\n" err)))
+  (log (.. "error:\n\n" (or err "nil"))))
 
 (fn send-back-as-error [e]
   (udp-out:send (json.encode {:error e} {})))
