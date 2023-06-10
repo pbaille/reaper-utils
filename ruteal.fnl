@@ -1,5 +1,5 @@
 (local {&as u
-        :table tbl
+        : tbl
         : seq
         : hof} (require :utils))
 
@@ -87,6 +87,16 @@
 (fn note.shift-position [n offset]
   (tbl.upd n {:start-position (hof.adder offset)
               :end-position (hof.adder offset)}))
+
+(fn note.lte [a b]
+  (if (= a.start-position b.start-position)
+      (< a.pitch b.pitch)
+      (< a.start-position b.start-position)))
+
+(fn note.gte [a b]
+  (if (= a.start-position b.start-position)
+      (> a.pitch b.pitch)
+      (> a.start-position b.start-position)))
 
 ;; ------------------------------------------------------------
 (local take {:grid {}
@@ -224,6 +234,47 @@
     (midi-editor.pitch-cursor.set (midi-editor.get-active) y)
     new-focus))
 
+(fn take.focus.next-note [t]
+  (let [{: x : y} (take.focus.get t)
+        candidates (take.notes.filter t (fn [n] (or (> n.start-position x)
+                                                   (and (= n.start-position x)
+                                                        (> n.pitch y)))))]
+    (take.focus-note t
+     (seq.first (seq.sort-with candidates note.lte)))))
+
+(fn take.focus.previous-note [t]
+  (let [{: x : y} (take.focus.get t)
+        candidates (take.notes.filter t (fn [n] (or (< n.start-position x)
+                                                   (and (= n.start-position x)
+                                                        (< n.pitch y)))))]
+    (take.focus-note t
+     (seq.first (seq.sort-with candidates note.gte)))))
+
+(fn take.focus.get-closest-note [t]
+  (let [{: x : y} (take.focus.get t)
+        notes (take.notes.get t)
+        by-dist (-> notes
+                    (seq.keep (fn [n] {:delta-x (math.abs (- n.start-position x))
+                                       :delta-y (math.abs (- n.pitch y))
+                                       :note n}))
+                    (seq.sort-by (fn [{: delta-x : delta-y}] (+ delta-x delta-y))))]
+    (?. (seq.first by-dist)
+        :note)))
+
+(fn take.focus.closest-note [t]
+  (take.focus-note t (take.focus.get-closest-note t)))
+
+(fn take.focus.cycle-at-cursor [t]
+  (let [{: x : y} (take.focus.get t)
+        candidates (take.notes.filter t (fn [n] (= n.start-position x)))
+        n-choices (length candidates)
+        current-idx (seq.index-of candidates y)]
+    (if (not current-idx)
+        (take.focus.set t {: x :y (seq.first candidates)})
+        (> n-choices 1)
+        (take.focus.set t {: x :y (. candidates
+                                     (if (= current-idx n-choices) 1 (+ 1 current-idx)))}))))
+
 ;; note
 
 (fn take.get-note [t idx]
@@ -240,7 +291,14 @@
      : idx}))
 
 (fn take.focus-note [t n]
-  (take.focus.set t {:x n.start-position :y n.pitch}))
+  (if n
+      (take.focus.set t {:x n.start-position :y n.pitch})))
+
+(fn take.focused-note [t]
+  (let [{: x : y} (take.focus.get t)]
+    (seq.find (take.notes.get t)
+              (fn [n] (and (= x n.start-position)
+                           (= y n.pitch))))))
 
 (fn take.set-note [t {: channel
                       : end-position
