@@ -328,7 +328,7 @@
          : selected
          : start-position
          : velocity} (note.mk n)
-        idx (take.note-count t)]
+        idx (take.notes.count t)]
     (r.MIDI_InsertNote t
                        selected muted
                        start-position end-position
