@@ -171,7 +171,9 @@
   (take.time-selection.set t (time.qpos->ppq start) (time.qpos->ppq end)))
 
 (fn take.time-selection.update [t side delta]
-  (let [sel (take.time-selection.get t)
+  (let [cursor-pos (take.cursor.get t)
+        sel (or (take.time-selection.get t)
+                {:start cursor-pos :end cursor-pos})
         increment (time.qpos->ppq (* delta (take.grid.get t)))]
     (case side
       :fw (take.time-selection.set t sel.start (+ sel.end increment))
