@@ -119,6 +119,10 @@
   (r.MIDI_Sort t)
   :ok)
 
+(fn take.disable-sort [t]
+  (r.MIDI_DisableSort t)
+  :ok)
+
 ;; time
 
 (fn take.project-time->ppq [t x]
@@ -178,7 +182,7 @@
 ;; note-selection
 
 (fn take.note-selection.get [t]
-  (let [notes (seq.keep (take.notes t) (fn [n] (tbl.rem n :take)))
+  (let [notes (take.notes.get t)
         selected-notes (seq.filter notes (fn [n] n.selected))
         candidates (if (= 0 (length selected-notes)) notes selected-notes)
         time-selection (take.time-selection.get t)]
@@ -187,11 +191,7 @@
       _ candidates)))
 
 (fn take.note-selection.delete-all [t]
-  (let [notes (take.note-selection.get t)
-        idxs (let [idxs (seq.keep notes (fn [n] n.idx))]
-               (seq.sort-by idxs (fn [a b] (> a b))))]
-    (each [_ i (ipairs idxs)]
-      (take.delete-note t i))))
+  (take.delete-notes t (take.note-selection.get t)))
 
 ;; cursor
 
@@ -319,6 +319,14 @@
 
 (fn take.delete-note [t idx]
   (r.MIDI_DeleteNote t idx))
+
+(fn take.delete-notes [t xs]
+  (let [idxs (let [idxs (seq.keep xs (fn [n] n.idx))]
+               (seq.sort-with idxs (fn [a b] (> a b))))]
+    (take.disable-sort t)
+    (each [_ i (ipairs idxs)]
+      (take.delete-note t i))
+    (take.sort t)))
 
 (fn take.insert-note [t n]
   (let [{: channel
