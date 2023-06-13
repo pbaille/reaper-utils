@@ -137,7 +137,9 @@
   found)
 
 (fn seq.sort [s key-fn compare-fn]
-  (table.sort s (fn [a b] (compare-fn (key-fn a) (key-fn b))))
+  (if (not key-fn) (table.sort s)
+      (not compare-fn) (seq.sort-by s key-fn)
+      (table.sort s (fn [a b] (compare-fn (key-fn a) (key-fn b)))))
   s)
 
 (fn seq.sort-with [s f]
@@ -188,7 +190,11 @@
           (seq.append [1 2 3] 4)
           (seq.concat [1 2 3] [4 5 6])
           (seq.index-of [1 3 2 5 4 6 2] 2)
-          (seq.sort-by [1 2 3 2 4 3] (fn [a] a))]
+          (seq.sort-by [1 2 3 2 4 3] (fn [a] a))
+          (seq.sort [1 2 3 4 3 2 5])
+          (seq.sort [1 2 3 4 3 2 5] (fn [a] (* -1 a)))
+          (seq.sort [1 2 3 4 3 2 5] (fn [a] (* -1 a)) (fn [a b] (> a b)))
+          (seq.sort-with [1 2 3 2 4 3] (fn [a b] (> a b)))]
 
          [:tbl-tries
           (local m (table-matcher {:a 1
