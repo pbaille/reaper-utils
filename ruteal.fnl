@@ -83,7 +83,7 @@
 (fn take.ppq->qpos [t x]
   (/ x (take.get-ppq t)))
 
-(fn take.qpos->ppq [x]
+(fn take.qpos->ppq [t x]
   (* x (take.get-ppq t)))
 
 
