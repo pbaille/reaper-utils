@@ -7,21 +7,7 @@
 
 (local r reaper)
 
-(var TICKS_PER_QUARTER_NOTE 2048)
-
 (local time {:signature {}})
-
-(fn time.set-ppq [n]
-  (set TICKS_PER_QUARTER_NOTE n))
-
-(fn time.get-ppq []
-  TICKS_PER_QUARTER_NOTE)
-
-(fn time.ppq->qpos [x]
-  (/ x TICKS_PER_QUARTER_NOTE))
-
-(fn time.qpos->ppq [x]
-  (* x TICKS_PER_QUARTER_NOTE))
 
 (fn time.signature.get []
   (let [(bpm bpi) (reaper.GetProjectTimeSignature2 0)]
@@ -63,30 +49,6 @@
 
 ;; ------------------------------------------------------------
 (local note {})
-
-(fn note.default []
-  {:channel 1
-   :pitch 60
-   :velocity 80
-   :start-position 0
-   :end-position TICKS_PER_QUARTER_NOTE
-   :muted false
-   :selected true})
-
-(fn note.to-absolute-position [n]
-  (let [{: position : duration} n
-        start-pos (time.qpos->ppq position)
-        end-pos (+ start-pos (time.qpos->ppq duration))]
-    (tset n :position nil)
-    (tset n :duration nil)
-    (tset n :start-position start-pos)
-    (tset n :end-position end-pos)
-    n))
-
-(fn note.mk [n]
-  (if (and n.position n.duration)
-      (note.mk (note.to-absolute-position n))
-      (tbl.merge (note.default) n)))
 
 (fn note.shift-position [n offset]
   (tbl.upd n {:start-position (hof.adder offset)
