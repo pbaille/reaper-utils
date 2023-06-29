@@ -11,6 +11,7 @@
 (local r reaper)
 
 (local udp (assert (sok.udp)))
+(udp:setoption "reuseaddr" true)
 (assert (udp:setsockname "127.0.0.1" 9999))
 (local udp-out (assert (sok.udp)))
 (assert (udp-out:setpeername "127.0.0.1" 9997))
@@ -27,16 +28,16 @@
   (if m
       (let [{: code : compiled : no-return} (bencode.decode m)
             (f err) (load compiled)
-            (status ret err) (xpcall f (fn [e] e))]
+            (success ret) (pcall f)]
         (log (.. "__________\n\n>> " code "\n"))
-        (if status
+        (if success
             (do (log ret)
                 (or no-return
                     (xpcall (fn [] (udp-out:send (json.encode ret {})))
                             send-back-as-error)))
-            (do (log-as-error err)
+            (do (log-as-error ret)
                 (or no-return
-                    (send-back-as-error err))))))
+                    (send-back-as-error ret))))))
   (reaper.defer main))
 
 (main)
