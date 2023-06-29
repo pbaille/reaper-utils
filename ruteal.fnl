@@ -7,9 +7,15 @@
 
 (local r reaper)
 
-(local TICKS_PER_QUARTER_NOTE 960)
+(var TICKS_PER_QUARTER_NOTE 2048)
 
 (local time {:signature {}})
+
+(fn time.set-ppq [n]
+  (set TICKS_PER_QUARTER_NOTE n))
+
+(fn time.get-ppq []
+  TICKS_PER_QUARTER_NOTE)
 
 (fn time.ppq->qpos [x]
   (/ x TICKS_PER_QUARTER_NOTE))
@@ -44,8 +50,6 @@
 
 (fn midi-editor.get-take [me]
   (r.MIDIEditor_GetTake me))
-
-(tset midi-editor :pitch-cursor {})
 
 (fn midi-editor.pitch-cursor.get [me]
   (reaper.MIDIEditor_GetSetting_int me "active_note_row"))
@@ -104,11 +108,22 @@
              :note-selection {}
              :cursor {}
              :focus {}
+             :note {}
              :notes {}
              :ccs {}})
 
 (fn take.get-active []
   (midi-editor.get-take (midi-editor.get-active)))
+
+(fn take.get-ppq [t]
+  (math.floor (r.MIDI_GetPPQPosFromProjQN t 1)))
+
+(fn take.ppq->qpos [t x]
+  (/ x (take.get-ppq t)))
+
+(fn take.qpos->ppq [x]
+  (* x (take.get-ppq t)))
+
 
 (fn take.mark-dirty [t]
   (r.MarkTrackItemsDirty (r.GetMediaItemTake_Track t)
@@ -123,6 +138,32 @@
   (r.MIDI_DisableSort t)
   :ok)
 
+;; note
+
+(fn take.note.default [t]
+  {:channel 1
+   :pitch 60
+   :velocity 80
+   :start-position 0
+   :end-position (take.get-ppq t)
+   :muted false
+   :selected true})
+
+(fn take.note.to-absolute-position [t n]
+  (let [{: position : duration} n
+        start-pos (take.qpos->ppq t position)
+        end-pos (+ start-pos (take.qpos->ppq t duration))]
+    (tset n :position nil)
+    (tset n :duration nil)
+    (tset n :start-position start-pos)
+    (tset n :end-position end-pos)
+    n))
+
+(fn take.note.mk [t n]
+  (if (and n.position n.duration)
+      (take.note.mk t (take.note.to-absolute-position t n))
+      (tbl.merge (take.note.default t) n)))
+
 ;; time
 
 (fn take.project-time->ppq [t x]
@@ -132,10 +173,10 @@
   (reaper.MIDI_GetProjTimeFromPPQPos t x))
 
 (fn take.project-time->qpos [t x]
-  (time.ppq->qpos (take.project-time->ppq t x)))
+  (take.ppq->qpos t (take.project-time->ppq t x)))
 
 (fn take.qpos->project-time [t x]
-  (take.ppq->project-time t (time.qpos->ppq x)))
+  (take.ppq->project-time t (take.qpos->ppq t x)))
 
 ;; grid
 
@@ -143,7 +184,7 @@
   (reaper.MIDI_GetGrid t))
 
 (fn take.grid.get-ppq [t]
-  (time.qpos->ppq (reaper.MIDI_GetGrid t)))
+  (take.qpos->ppq t (reaper.MIDI_GetGrid t)))
 
 (fn take.grid.set [t x]
   (let [sig (time.signature.get)]
@@ -164,17 +205,17 @@
 
 (fn take.time-selection.get-qpos [t]
   (let [{: start : end} (take.time-selection.get t)]
-    {:start (time.ppq->qpos start)
-     :end (time.ppq->qpos end)}))
+    {:start (take.ppq->qpos t start)
+     :end (take.ppq->qpos t end)}))
 
 (fn take.time-selection.set-qpos [t start end]
-  (take.time-selection.set t (time.qpos->ppq start) (time.qpos->ppq end)))
+  (take.time-selection.set t (take.qpos->ppq t start) (take.qpos->ppq t end)))
 
 (fn take.time-selection.update [t side delta]
   (let [cursor-pos (take.cursor.get t)
         sel (or (take.time-selection.get t)
                 {:start cursor-pos :end cursor-pos})
-        increment (time.qpos->ppq (* delta (take.grid.get t)))]
+        increment (take.qpos->ppq t (* delta (take.grid.get t)))]
     (case side
       :fw (take.time-selection.set t sel.start (+ sel.end increment))
       :bw (take.time-selection.set t (+ sel.start increment) sel.end)
@@ -206,10 +247,10 @@
                         true false))
 
 (fn take.cursor.get-qpos [t]
-  (time.ppq->qpos (take.cursor.get t)))
+  (take.ppq->qpos t (take.cursor.get t)))
 
 (fn take.cursor.set-qpos [t p]
-  (take.cursor.set t (time.qpos->ppq p)))
+  (take.cursor.set t (take.qpos->ppq t p)))
 
 (fn take.cursor.ceil [t]
   (take.cursor.set t (reaper.BR_GetNextGridDivision (take.cursor.get t))))
@@ -221,7 +262,7 @@
   (take.cursor.set t (reaper.BR_GetClosestGridDivision (take.cursor.get t))))
 
 (fn take.cursor.update [t delta]
-  (let [increment (time.qpos->ppq (* delta (take.grid.get t)))]
+  (let [increment (take.qpos->ppq t (* delta (take.grid.get t)))]
     (take.cursor.set t (+ (take.cursor.get t) increment))))
 
 ;; focus
@@ -337,7 +378,7 @@
          : pitch
          : selected
          : start-position
-         : velocity} (note.mk n)
+         : velocity} (take.note.mk t n)
         idx (take.notes.count t)]
     (r.MIDI_InsertNote t
                        selected muted
@@ -347,9 +388,10 @@
     (take.get-note t idx)))
 
 (fn take.insert-notes [t xs]
+  (take.disable-sort t)
   (each [_ n (ipairs xs)]
     (take.insert-note t n))
-  (take.sort))
+  (take.sort t))
 
 ;; notes
 
@@ -370,9 +412,10 @@
           (take.delete-note t i)))))
 
 (fn take.notes.upd [t u]
+  (take.disable-sort t)
   (each [_ n (ipairs (take.notes.get t))]
     (take.upd-note t n u))
-  (take.sort))
+  (take.sort t))
 
 (fn take.notes.filter [t matcher]
   (seq.filter (take.notes.get t)
