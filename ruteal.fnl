@@ -186,13 +186,17 @@
 
 ;; note-selection
 
+(local NOON_MIDI_NOTE_SHIFT 2)
+;; when emiting midi from noon notes are shifted by 2 ppq, this is why we are doing this
+;; it should not be a problem for regular scores since it is so small,
+;; but is clearly a smell (that should be handled on the noon side, then removed from here)
 (fn take.note-selection.get [t]
   (let [notes (take.notes.get t)
         selected-notes (seq.filter notes (fn [n] n.selected))
         candidates (if (= 0 (length selected-notes)) notes selected-notes)
         time-selection (take.time-selection.get t)]
     (case time-selection
-      {:start start :end end} (seq.filter candidates (fn [n] (<= start n.start-position n.end-position end)))
+      {:start start :end end} (seq.filter candidates (fn [n] (<= start n.start-position n.end-position (+ end NOON_MIDI_NOTE_SHIFT))))
       _ candidates)))
 
 (fn take.note-selection.delete-all [t]
